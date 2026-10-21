@@ -9,7 +9,7 @@ let editingId = null;
 function loadProfiles() {
   try {
     const value = JSON.parse(localStorage.getItem(KEY) || '[]');
-    return Array.isArray(value) ? value : [];
+    return Array.isArray(value) ? value.map((profile, index) => ({ ...profile, slot: Number(profile.slot) || (index < 5 ? index + 1 : null) })) : [];
   } catch {
     return [];
   }
@@ -30,7 +30,7 @@ function render() {
   document.querySelector('#app').innerHTML = `
     <main class="shell">
       <header><div class="mark">C</div><div><p class="eyebrow">CLAUDE WORKSPACE</p><h1>Claude <span>Multiple</span></h1></div><button class="iconbtn" id="add" aria-label="Add profile">＋</button></header>
-      <section class="intro"><p class="eyebrow">YOUR PROFILES</p><h2>Every workspace, <em>one tap away.</em></h2><p class="sub">Create a profile for each Claude account. Names and time labels stay saved on this device.</p></section>
+      <section class="intro"><p class="eyebrow">YOUR PROFILES</p><h2>Every workspace, <em>one tap away.</em></h2><p class="sub">Each profile keeps its own Claude login and website data. Up to five isolated profiles are supported.</p></section>
       <section class="profile-list">
       ${profiles.length ? profiles.map((p, i) => `<article class="profile"><div class="avatar">${esc((p.name || '?').trim().slice(0, 1).toUpperCase())}</div><div class="details"><h3>${esc(p.name)}</h3><p>${p.time ? '◷ ' + esc(p.time) : 'No time label'}</p><small>PROFILE ${String(i + 1).padStart(2, '0')}</small></div><button class="open" data-open="${esc(p.id)}">Open ↗</button><button class="more" data-edit="${esc(p.id)}" aria-label="Edit profile">···</button></article>`).join('') : `<div class="empty"><div class="emptyicon">＋</div><h3>No profiles yet</h3><p>Create your first Claude profile to get started.</p><button class="primary" id="emptyAdd">Create profile</button></div>`}
       </section>

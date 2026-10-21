@@ -1,7 +1,8 @@
 import './style.css';
-import { Browser } from '@capacitor/browser';
 
 const KEY = 'claude-multiple-profiles-v1';
+const MAX_PROFILES = 5;
+const slots = [1, 2, 3, 4, 5];
 let profiles = loadProfiles();
 let editingId = null;
 
@@ -49,7 +50,12 @@ function render() {
     const time = document.querySelector('#time').value.trim();
     if (!name) return;
     if (editingId) profiles = profiles.map(p => p.id === editingId ? { ...p, name, time } : p);
-    else profiles.push({ id: uid(), name, time, createdAt: Date.now() });
+    else {
+      const used = new Set(profiles.map(p => Number(p.slot)).filter(Boolean));
+      const slot = slots.find(value => !used.has(value));
+      if (!slot) { alert('Maximum 5 isolated profiles supported on this device.'); return; }
+      profiles.push({ id: uid(), name, time, slot, createdAt: Date.now() });
+    }
     dialog.close();
     save();
   };
@@ -73,11 +79,24 @@ function openEditor(id = null) {
   setTimeout(() => document.querySelector('#name').focus(), 40);
 }
 async function openProfile(id) {
-  if (!profiles.some(profile => profile.id === id)) return;
+  const profile = profiles.find(item => item.id === id);
+  if (!profile) return;
+  if (!profile.slot) {
+    const used = new Set(profiles.filter(p => p.id !== id).map(p => Number(p.slot)).filter(Boolean));
+    profile.slot = slots.find(value => !used.has(value));
+    if (!profile.slot) { alert('Maximum 5 isolated profiles supported on this device.'); return; }
+    save();
+  }
+  const native = globalThis.Capacitor?.Plugins?.IsolatedProfiles;
+  if (!native?.openProfile) {
+    alert('Native isolated-profile support is missing. Install the latest APK built from the repository.');
+    return;
+  }
   try {
-    await Browser.open({ url: 'https://claude.ai/new', presentationStyle: 'popover' });
-  } catch {
-    window.open('https://claude.ai/new', '_blank', 'noopener');
+    await native.openProfile({ slot: Number(profile.slot), name: profile.name || 'Claude' });
+  } catch (error) {
+    console.error(error);
+    alert('Could not open this isolated profile. Check the installed app version.');
   }
 }
 render();

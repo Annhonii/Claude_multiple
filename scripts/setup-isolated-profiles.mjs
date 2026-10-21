@@ -3,7 +3,7 @@ import path from 'node:path';
 const root='android/app/src/main';
 const pkgDir=path.join(root,'java/com/annhonii/claudemultiple');
 fs.mkdirSync(pkgDir,{recursive:true});
-fs.writeFileSync(path.join(pkgDir,'IsolatedProfilesPlugin.java'), \`package com.annhonii.claudemultiple;
+fs.writeFileSync(path.join(pkgDir,'IsolatedProfilesPlugin.java'), `package com.annhonii.claudemultiple;
 import android.content.Intent;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -25,8 +25,8 @@ public class IsolatedProfilesPlugin extends Plugin {
   getActivity().startActivity(intent); call.resolve();
  }
 }
-\`);
-fs.writeFileSync(path.join(pkgDir,'IsolatedProfileActivity.java'), \`package com.annhonii.claudemultiple;
+`);
+fs.writeFileSync(path.join(pkgDir,'IsolatedProfileActivity.java'), `package com.annhonii.claudemultiple;
 import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
@@ -92,7 +92,7 @@ public abstract class IsolatedProfileActivity extends Activity {
  @Override public void onBackPressed(){if(webView!=null&&webView.canGoBack())webView.goBack();else super.onBackPressed();}
  @Override protected void onDestroy(){if(fileCallback!=null)fileCallback.onReceiveValue(null);if(webView!=null){webView.destroy();webView=null;}super.onDestroy();}
 }
-\`);
+`);
 for(let n=1;n<=5;n++) fs.writeFileSync(path.join(pkgDir,'ClaudeProfile'+n+'Activity.java'),'package com.annhonii.claudemultiple;\npublic final class ClaudeProfile'+n+'Activity extends IsolatedProfileActivity { @Override protected int profileSlot(){return '+n+';} }\n');
 const manifestPath=path.join(root,'AndroidManifest.xml'); let manifest=fs.readFileSync(manifestPath,'utf8');
 if(!manifest.includes('ClaudeProfile1Activity')){

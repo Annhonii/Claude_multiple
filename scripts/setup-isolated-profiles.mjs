@@ -111,16 +111,16 @@ function findMainActivity(dir) {
 const mainPath=findMainActivity(path.join(root,'java')) || findMainActivity(path.join(root,'kotlin'));
 if(!mainPath) throw new Error('Generated MainActivity source was not found under android/app/src/main');
 if(mainPath.endsWith('.kt')) {
- const main='package com.annhonii.claudemultiple\\n\\nimport android.os.Bundle\\nimport com.getcapacitor.BridgeActivity\\n\\nclass MainActivity : BridgeActivity() {\\n override fun onCreate(savedInstanceState: Bundle?) {\\n  registerPlugin(IsolatedProfilesPlugin::class.java)\\n  super.onCreate(savedInstanceState)\\n }\\n}\\n';
+ const main='package com.annhonii.claudemultiple\n\nimport android.os.Bundle\nimport com.getcapacitor.BridgeActivity\n\nclass MainActivity : BridgeActivity() {\n override fun onCreate(savedInstanceState: Bundle?) {\n  registerPlugin(IsolatedProfilesPlugin::class.java)\n  super.onCreate(savedInstanceState)\n }\n}\n';
  fs.writeFileSync(mainPath,main);
 } else {
  let main=fs.readFileSync(mainPath,'utf8');
  if(!main.includes('IsolatedProfilesPlugin')) {
-  main=main.replace(/public class MainActivity extends BridgeActivity\\s*\\{/, 'public class MainActivity extends BridgeActivity {\\n @Override protected void onCreate(Bundle savedInstanceState) { registerPlugin(IsolatedProfilesPlugin.class); super.onCreate(savedInstanceState); }');
+  main=main.replace(/public class MainActivity extends BridgeActivity\s*\{/, 'public class MainActivity extends BridgeActivity {\n @Override protected void onCreate(Bundle savedInstanceState) { registerPlugin(IsolatedProfilesPlugin.class); super.onCreate(savedInstanceState); }');
   if(!main.includes('registerPlugin(IsolatedProfilesPlugin.class)')) {
-   main='package com.annhonii.claudemultiple;\\n\\nimport android.os.Bundle;\\nimport com.getcapacitor.BridgeActivity;\\n\\npublic class MainActivity extends BridgeActivity {\\n @Override protected void onCreate(Bundle savedInstanceState) { registerPlugin(IsolatedProfilesPlugin.class); super.onCreate(savedInstanceState); }\\n}\\n';
+   main='package com.annhonii.claudemultiple;\n\nimport android.os.Bundle;\nimport com.getcapacitor.BridgeActivity;\n\npublic class MainActivity extends BridgeActivity {\n @Override protected void onCreate(Bundle savedInstanceState) { registerPlugin(IsolatedProfilesPlugin.class); super.onCreate(savedInstanceState); }\n}\n';
   } else if(!main.includes('import android.os.Bundle;')) {
-   main=main.replace(/package [^;]+;\\s*/, match=>match+'\\nimport android.os.Bundle;\\n');
+   main=main.replace(/package [^;]+;\s*/, match=>match+'\nimport android.os.Bundle;\n');
   }
   fs.writeFileSync(mainPath,main);
  }

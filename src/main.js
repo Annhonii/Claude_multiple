@@ -28,7 +28,7 @@ function esc(value = '') {
   })[char]);
 }
 function countdownLabel(time) {
-  if (!time || !/^\\d{2}:\\d{2}$/.test(time)) return '';
+  if (!time || !/^\d{2}:\d{2}$/.test(time)) return '';
   const parts = time.split(':').map(Number);
   const now = new Date(), target = new Date(now);
   target.setHours(parts[0], parts[1], 0, 0);
@@ -94,7 +94,7 @@ function openEditor(id = null) {
   const dialog = document.querySelector('#editor');
   document.querySelector('#formTitle').textContent = profile ? 'Edit profile' : 'New profile';
   document.querySelector('#name').value = profile?.name || '';
-  document.querySelector('#time').value = /^\\d{2}:\\d{2}$/.test(profile?.time || '') ? profile.time : '';
+  document.querySelector('#time').value = /^\d{2}:\d{2}$/.test(profile?.time || '') ? profile.time : '';
   document.querySelector('#showCountdown').checked = Boolean(profile?.showCountdown);
   document.querySelector('#time').disabled = !profile?.showCountdown;
   document.querySelector('#delete').style.display = profile ? 'block' : 'none';

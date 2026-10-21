@@ -31,9 +31,18 @@ import android.app.Activity;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
+import android.content.ContentValues;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Build;
+import android.provider.MediaStore;
+import android.util.Base64;
+import android.webkit.JavascriptInterface;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
+import java.io.IOException;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
 import android.webkit.ValueCallback;
@@ -64,7 +73,38 @@ public abstract class IsolatedProfileActivity extends Activity {
   webView=new WebView(this); webView.getSettings().setJavaScriptEnabled(true); webView.getSettings().setDomStorageEnabled(true);
   webView.getSettings().setDatabaseEnabled(true); webView.getSettings().setAllowFileAccess(true);
   CookieManager cookies=CookieManager.getInstance(); cookies.setAcceptCookie(true); cookies.setAcceptThirdPartyCookies(webView,true);
-  webView.setWebViewClient(new WebViewClient());
+  webView.addJavascriptInterface(new Object(){
+   @JavascriptInterface public void saveBlob(String base64,String fileName,String mimeType){
+    runOnUiThread(()->{
+     String safeName=(fileName==null||fileName.trim().isEmpty()?"claude-download":fileName).replaceAll("[\\\\/:*?\\\"<>|]","_");
+     if(!safeName.toLowerCase().endsWith(".zip") && mimeType!=null && mimeType.toLowerCase().contains("zip")) safeName += ".zip";
+     try{
+      byte[] bytes=Base64.decode(base64,Base64.DEFAULT); Uri saved;
+      if(Build.VERSION.SDK_INT>=29){
+       ContentValues values=new ContentValues(); values.put(MediaStore.Downloads.DISPLAY_NAME,safeName);
+       values.put(MediaStore.Downloads.MIME_TYPE,mimeType==null?"application/octet-stream":mimeType);
+       values.put(MediaStore.Downloads.RELATIVE_PATH,Environment.DIRECTORY_DOWNLOADS);
+       values.put(MediaStore.Downloads.IS_PENDING,1);
+       saved=getContentResolver().insert(MediaStore.Downloads.EXTERNAL_CONTENT_URI,values);
+       if(saved==null) throw new IOException("Could not create Downloads file");
+       try(OutputStream out=getContentResolver().openOutputStream(saved)){if(out==null)throw new IOException("Could not open Downloads file");out.write(bytes);}
+       ContentValues done=new ContentValues();done.put(MediaStore.Downloads.IS_PENDING,0);getContentResolver().update(saved,done,null,null);
+      }else{
+       File dir=Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS);if(!dir.exists())dir.mkdirs();
+       File file=new File(dir,safeName);try(FileOutputStream out=new FileOutputStream(file)){out.write(bytes);} saved=Uri.fromFile(file);
+      }
+      Toast.makeText(IsolatedProfileActivity.this,"Downloaded: "+safeName,Toast.LENGTH_LONG).show();
+     }catch(Exception ex){Toast.makeText(IsolatedProfileActivity.this,"Download failed: "+ex.getMessage(),Toast.LENGTH_LONG).show();}
+    });
+   }
+  },"AndroidDownloadBridge");
+  webView.setWebViewClient(new WebViewClient(){
+   @Override public void onPageFinished(WebView view,String url){
+    super.onPageFinished(view,url);
+    String patch="(function(){if(window.__claudeBlobDownloadPatch)return;window.__claudeBlobDownloadPatch=true;document.addEventListener('click',function(e){var a=e.target&&e.target.closest?e.target.closest('a[download]'):null;if(!a)return;var u=a.href||'';if(u.indexOf('blob:')!==0&&u.indexOf('data:')!==0)return;e.preventDefault();e.stopPropagation();fetch(u).then(function(r){return r.blob()}).then(function(b){var fr=new FileReader();fr.onload=function(){var d=String(fr.result).split(',')[1]||'';window.AndroidDownloadBridge.saveBlob(d,a.download||'claude-download',b.type||'application/octet-stream')};fr.readAsDataURL(b)}).catch(function(err){console.error('Blob download failed',err);alert('Could not prepare this download. Please retry.')} )},true)})();";
+    view.evaluateJavascript(patch,null);
+   }
+  });
   webView.setWebChromeClient(new WebChromeClient(){
    @Override public boolean onShowFileChooser(WebView view,ValueCallback<Uri[]> callback,FileChooserParams params){
     if(fileCallback!=null)fileCallback.onReceiveValue(null); fileCallback=callback;
@@ -74,14 +114,18 @@ public abstract class IsolatedProfileActivity extends Activity {
   });
   webView.setDownloadListener((url,userAgent,disposition,mimeType,size)->{
    try{
-    DownloadManager.Request req=new DownloadManager.Request(Uri.parse(url)); req.setMimeType(mimeType);
+    Uri downloadUri=Uri.parse(url);
+    if(!"http".equalsIgnoreCase(downloadUri.getScheme())&&!"https".equalsIgnoreCase(downloadUri.getScheme())){Toast.makeText(this,"Unsupported download link: "+downloadUri.getScheme(),Toast.LENGTH_LONG).show();return;}
+    DownloadManager.Request req=new DownloadManager.Request(downloadUri); req.setMimeType(mimeType);
     String cookie=CookieManager.getInstance().getCookie(url); if(cookie!=null)req.addRequestHeader("Cookie",cookie);
     if(userAgent!=null)req.addRequestHeader("User-Agent",userAgent);
+    req.addRequestHeader("Referer","https://claude.ai/");
+    req.setAllowedOverMetered(true); req.setAllowedOverRoaming(true);
     req.setTitle(android.webkit.URLUtil.guessFileName(url,disposition,mimeType));
     req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
     req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS,android.webkit.URLUtil.guessFileName(url,disposition,mimeType));
     ((DownloadManager)getSystemService(DOWNLOAD_SERVICE)).enqueue(req);
-   }catch(Exception e){Toast.makeText(this,"Download failed to start",Toast.LENGTH_LONG).show();}
+   }catch(Exception e){android.util.Log.e("ClaudeDownload","Could not start download",e);Toast.makeText(this,"Download failed: "+e.getMessage(),Toast.LENGTH_LONG).show();}
   });
   root.addView(webView,new LinearLayout.LayoutParams(-1,0,1)); setContentView(root); webView.loadUrl("https://claude.ai/new");
  }

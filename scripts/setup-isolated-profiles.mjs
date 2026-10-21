@@ -133,8 +133,28 @@ public abstract class IsolatedProfileActivity extends Activity {
   super.onActivityResult(requestCode,resultCode,data);
   if(requestCode==FILE_REQUEST&&fileCallback!=null){fileCallback.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(resultCode,data));fileCallback=null;}
  }
+ @Override protected void onPause(){
+  persistWebSession();
+  if(webView!=null)webView.onPause();
+  super.onPause();
+ }
+ @Override protected void onStop(){
+  persistWebSession();
+  super.onStop();
+ }
+ private void persistWebSession(){
+  try{
+   CookieManager.getInstance().flush();
+   if(webView!=null)webView.evaluateJavascript("(function(){try{localStorage.length;sessionStorage.length}catch(e){}})()",null);
+  }catch(Exception e){android.util.Log.w("ClaudeProfile","Could not flush session data",e);}
+ }
  @Override public void onBackPressed(){if(webView!=null&&webView.canGoBack())webView.goBack();else super.onBackPressed();}
- @Override protected void onDestroy(){if(fileCallback!=null)fileCallback.onReceiveValue(null);if(webView!=null){webView.destroy();webView=null;}super.onDestroy();}
+ @Override protected void onDestroy(){
+  persistWebSession();
+  if(fileCallback!=null)fileCallback.onReceiveValue(null);
+  if(webView!=null){webView.onPause();webView.destroy();webView=null;}
+  super.onDestroy();
+ }
 }
 `);
 for(let n=1;n<=5;n++) fs.writeFileSync(path.join(pkgDir,'ClaudeProfile'+n+'Activity.java'),'package com.annhonii.claudemultiple;\npublic final class ClaudeProfile'+n+'Activity extends IsolatedProfileActivity { @Override protected int profileSlot(){return '+n+';} }\n');

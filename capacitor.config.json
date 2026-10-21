@@ -1,0 +1,7 @@
+{
+  "appId": "com.annhonii.claudemultiple",
+  "appName": "Claude Multiple",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": { "androidScheme": "https" }
+}

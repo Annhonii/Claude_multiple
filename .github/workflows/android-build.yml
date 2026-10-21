@@ -32,10 +32,11 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK and accept licenses
-        uses: android-actions/setup-android@v3
-        with:
-          accept-android-sdk-licenses: true
+      - name: Accept Android SDK licenses non-interactively
+        shell: bash
+        run: |
+          set -o pipefail
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
 
       - name: Install dependencies
         run: npm install

@@ -99,11 +99,30 @@ if(!manifest.includes('ClaudeProfile1Activity')){
  let entries=''; for(let n=1;n<=5;n++) entries+='    <activity android:name=".ClaudeProfile'+n+'Activity" android:exported="false" android:process=":claude_profile_'+n+'" android:theme="@style/AppTheme.NoActionBar" />\n';
  manifest=manifest.replace('</application>',entries+'</application>'); fs.writeFileSync(manifestPath,manifest);
 }
-const mainPath=path.join(root,'java/com/annhonii/claudemultiple/MainActivity.kt');
-if(!fs.existsSync(mainPath)) throw new Error('MainActivity.kt not found at expected package path');
-let main=fs.readFileSync(mainPath,'utf8');
-if(!main.includes('IsolatedProfilesPlugin')){
- main='package com.annhonii.claudemultiple\n\nimport android.os.Bundle\nimport com.getcapacitor.BridgeActivity\n\nclass MainActivity : BridgeActivity() {\n override fun onCreate(savedInstanceState: Bundle?) {\n  registerPlugin(IsolatedProfilesPlugin::class.java)\n  super.onCreate(savedInstanceState)\n }\n}\n';
+function findMainActivity(dir) {
+ if(!fs.existsSync(dir)) return null;
+ for (const entry of fs.readdirSync(dir,{withFileTypes:true})) {
+  const full=path.join(dir,entry.name);
+  if(entry.isDirectory()) { const found=findMainActivity(full); if(found) return found; }
+  else if(entry.name==='MainActivity.kt'||entry.name==='MainActivity.java') return full;
+ }
+ return null;
+}
+const mainPath=findMainActivity(path.join(root,'java')) || findMainActivity(path.join(root,'kotlin'));
+if(!mainPath) throw new Error('Generated MainActivity source was not found under android/app/src/main');
+if(mainPath.endsWith('.kt')) {
+ const main='package com.annhonii.claudemultiple\\n\\nimport android.os.Bundle\\nimport com.getcapacitor.BridgeActivity\\n\\nclass MainActivity : BridgeActivity() {\\n override fun onCreate(savedInstanceState: Bundle?) {\\n  registerPlugin(IsolatedProfilesPlugin::class.java)\\n  super.onCreate(savedInstanceState)\\n }\\n}\\n';
  fs.writeFileSync(mainPath,main);
+} else {
+ let main=fs.readFileSync(mainPath,'utf8');
+ if(!main.includes('IsolatedProfilesPlugin')) {
+  main=main.replace(/public class MainActivity extends BridgeActivity\\s*\\{/, 'public class MainActivity extends BridgeActivity {\\n @Override protected void onCreate(Bundle savedInstanceState) { registerPlugin(IsolatedProfilesPlugin.class); super.onCreate(savedInstanceState); }');
+  if(!main.includes('registerPlugin(IsolatedProfilesPlugin.class)')) {
+   main='package com.annhonii.claudemultiple;\\n\\nimport android.os.Bundle;\\nimport com.getcapacitor.BridgeActivity;\\n\\npublic class MainActivity extends BridgeActivity {\\n @Override protected void onCreate(Bundle savedInstanceState) { registerPlugin(IsolatedProfilesPlugin.class); super.onCreate(savedInstanceState); }\\n}\\n';
+  } else if(!main.includes('import android.os.Bundle;')) {
+   main=main.replace(/package [^;]+;\\s*/, match=>match+'\\nimport android.os.Bundle;\\n');
+  }
+  fs.writeFileSync(mainPath,main);
+ }
 }
 console.log('Configured five isolated native WebView profiles.');

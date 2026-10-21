@@ -35,8 +35,10 @@ jobs:
       - name: Accept Android SDK licenses non-interactively
         shell: bash
         run: |
-          set -o pipefail
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses
+          set -e
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          printf 'y\n%.0s' {1..20} | "$SDKMANAGER" --licenses || true
+          "$SDKMANAGER" --licenses </dev/null
 
       - name: Install dependencies
         run: npm install

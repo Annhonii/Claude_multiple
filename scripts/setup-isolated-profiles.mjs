@@ -93,17 +93,17 @@ public abstract class IsolatedProfileActivity extends Activity {
  @Override protected void onDestroy(){if(fileCallback!=null)fileCallback.onReceiveValue(null);if(webView!=null){webView.destroy();webView=null;}super.onDestroy();}
 }
 \`);
-for(let n=1;n<=5;n++) fs.writeFileSync(path.join(pkgDir,'ClaudeProfile'+n+'Activity.java'),'package com.annhonii.claudemultiple;\\npublic final class ClaudeProfile'+n+'Activity extends IsolatedProfileActivity { @Override protected int profileSlot(){return '+n+';} }\\n');
+for(let n=1;n<=5;n++) fs.writeFileSync(path.join(pkgDir,'ClaudeProfile'+n+'Activity.java'),'package com.annhonii.claudemultiple;\npublic final class ClaudeProfile'+n+'Activity extends IsolatedProfileActivity { @Override protected int profileSlot(){return '+n+';} }\n');
 const manifestPath=path.join(root,'AndroidManifest.xml'); let manifest=fs.readFileSync(manifestPath,'utf8');
 if(!manifest.includes('ClaudeProfile1Activity')){
- let entries=''; for(let n=1;n<=5;n++) entries+='    <activity android:name=".ClaudeProfile'+n+'Activity" android:exported="false" android:process=":claude_profile_'+n+'" android:theme="@style/AppTheme.NoActionBar" />\\n';
+ let entries=''; for(let n=1;n<=5;n++) entries+='    <activity android:name=".ClaudeProfile'+n+'Activity" android:exported="false" android:process=":claude_profile_'+n+'" android:theme="@style/AppTheme.NoActionBar" />\n';
  manifest=manifest.replace('</application>',entries+'</application>'); fs.writeFileSync(manifestPath,manifest);
 }
 const mainPath=path.join(root,'java/com/annhonii/claudemultiple/MainActivity.kt');
 if(!fs.existsSync(mainPath)) throw new Error('MainActivity.kt not found at expected package path');
 let main=fs.readFileSync(mainPath,'utf8');
 if(!main.includes('IsolatedProfilesPlugin')){
- main='package com.annhonii.claudemultiple\\n\\nimport android.os.Bundle\\nimport com.getcapacitor.BridgeActivity\\n\\nclass MainActivity : BridgeActivity() {\\n override fun onCreate(savedInstanceState: Bundle?) {\\n  registerPlugin(IsolatedProfilesPlugin::class.java)\\n  super.onCreate(savedInstanceState)\\n }\\n}\\n';
+ main='package com.annhonii.claudemultiple\n\nimport android.os.Bundle\nimport com.getcapacitor.BridgeActivity\n\nclass MainActivity : BridgeActivity() {\n override fun onCreate(savedInstanceState: Bundle?) {\n  registerPlugin(IsolatedProfilesPlugin::class.java)\n  super.onCreate(savedInstanceState)\n }\n}\n';
  fs.writeFileSync(mainPath,main);
 }
 console.log('Configured five isolated native WebView profiles.');

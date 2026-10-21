@@ -56,6 +56,9 @@ jobs:
       - name: Sync Capacitor Android project
         run: npx cap sync android
 
+      - name: Configure isolated native profile WebViews
+        run: node scripts/setup-isolated-profiles.mjs
+
       - name: Build debug APK
         working-directory: android
         run: ./gradlew assembleDebug --no-daemon

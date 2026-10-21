@@ -1,0 +1,22 @@
+{
+  "name": "claude-multiple",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Multi-profile Claude launcher for Android using Capacitor",
+  "scripts": {
+    "start": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "cap:sync": "cap sync android"
+  },
+  "dependencies": {
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3",
+    "@capacitor/filesystem": "^7.1.4",
+    "@capacitor/browser": "^7.0.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3",
+    "vite": "^6.4.1"
+  },
+  "type": "module"
+}
